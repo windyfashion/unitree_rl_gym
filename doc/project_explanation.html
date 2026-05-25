@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unitree RL GYM 项目讲解</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --panel-soft: #f1f5f9;
+      --text: #172033;
+      --muted: #607087;
+      --border: #d9e2ef;
+      --accent: #2563eb;
+      --accent-soft: #e8f0ff;
+      --green: #0f766e;
+      --orange: #c2410c;
+      --red: #b91c1c;
+      --code-bg: #101827;
+      --code-text: #e5edf8;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 28px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 24px;
+      align-self: start;
+      height: calc(100vh - 48px);
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .sidebar p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toc {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toc li {
+      margin: 4px 0;
+    }
+
+    .toc a {
+      display: block;
+      border-radius: 10px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .toc a:hover {
+      background: var(--accent-soft);
+      text-decoration: none;
+    }
+
+    .content {
+      min-width: 0;
+    }
+
+    .hero,
+    section {
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      padding: 30px;
+    }
+
+    .hero {
+      background:
+        radial-gradient(circle at 12% 18%, rgba(37, 99, 235, 0.16), transparent 28%),
+        radial-gradient(circle at 92% 8%, rgba(15, 118, 110, 0.14), transparent 24%),
+        var(--panel);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.12;
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 27px;
+      line-height: 1.28;
+    }
+
+    h3 {
+      margin: 28px 0 10px;
+      font-size: 21px;
+    }
+
+    h4 {
+      margin: 22px 0 8px;
+      font-size: 17px;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    .lead {
+      max-width: 920px;
+      color: #334155;
+      font-size: 18px;
+    }
+
+    .meta-grid,
+    .card-grid,
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .meta-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three-col {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card,
+    .note,
+    .warning,
+    .danger {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel-soft);
+      padding: 16px;
+    }
+
+    .card h3,
+    .card h4,
+    .note h3,
+    .warning h3,
+    .danger h3 {
+      margin-top: 0;
+    }
+
+    .note {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+
+    .warning {
+      border-color: #fed7aa;
+      background: #fff7ed;
+    }
+
+    .danger {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      padding: 2px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .badge.green {
+      background: #ccfbf1;
+      color: var(--green);
+    }
+
+    .badge.orange {
+      background: #ffedd5;
+      color: var(--orange);
+    }
+
+    .badge.red {
+      background: #fee2e2;
+      color: var(--red);
+    }
+
+    code {
+      border-radius: 6px;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 2px 6px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    pre {
+      overflow: auto;
+      border-radius: 16px;
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      line-height: 1.55;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      overflow: hidden;
+      border-radius: 16px;
+      background: var(--panel);
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--panel-soft);
+      color: #334155;
+    }
+
+    ul,
+    ol {
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .diagram {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      margin: 18px 0 26px;
+      padding: 18px;
+    }
+
+    .diagram svg {
+      min-width: 920px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .box {
+      fill: #ffffff;
+      stroke: #94a3b8;
+      stroke-width: 1.4;
+      rx: 12;
+    }
+
+    .box-blue {
+      fill: #eff6ff;
+      stroke: #60a5fa;
+    }
+
+    .box-green {
+      fill: #ecfdf5;
+      stroke: #34d399;
+    }
+
+    .box-orange {
+      fill: #fff7ed;
+      stroke: #fb923c;
+    }
+
+    .box-red {
+      fill: #fef2f2;
+      stroke: #f87171;
+    }
+
+    .svg-title {
+      fill: #0f172a;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .svg-small {
+      fill: #475569;
+      font-size: 12px;
+    }
+
+    .arrow {
+      stroke: #64748b;
+      stroke-width: 1.6;
+      fill: none;
+    }
+
+    .arrow-blue {
+      stroke: #2563eb;
+    }
+
+    .mermaid-static {
+      border: 1px dashed #cbd5e1;
+      border-radius: 16px;
+      background: #f8fafc;
+      color: #334155;
+      padding: 16px;
+      white-space: pre;
+      overflow: auto;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      line-height: 1.55;
+    }
+
+    .path {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .kbd {
+      border: 1px solid #cbd5e1;
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      background: #fff;
+      padding: 1px 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .checklist li {
+      list-style: none;
+      position: relative;
+    }
+
+    .checklist li::before {
+      position: absolute;
+      left: -22px;
+      color: var(--green);
+      content: "□";
+      font-weight: 700;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        top: auto;
+        height: auto;
+      }
+
+      .meta-grid,
+      .card-grid,
+      .two-col,
+      .three-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="sidebar">
+      <h2>文档目录</h2>
+      <p>按分层阅读设计：先跑通，再看原理，再做扩展，最后上部署和排错。</p>
+      <ul class="toc">
+        <li><a href="#overview">1. 项目概览</a></li>
+        <li><a href="#workflow">2. 总体流程</a></li>
+        <li><a href="#map">3. 代码地图</a></li>
+        <li><a href="#reading">4. 源码阅读路线</a></li>
+        <li><a href="#training">5. 训练框架</a></li>
+        <li><a href="#env">6. 环境实现</a></li>
+        <li><a href="#config">7. 配置字段索引</a></li>
+        <li><a href="#ppo">8. PPO 深入笔记</a></li>
+        <li><a href="#play">9. Play 与导出</a></li>
+        <li><a href="#extend">10. 新增/改造机器人</a></li>
+        <li><a href="#sim2sim">11. Sim2Sim 部署</a></li>
+        <li><a href="#sim2real">12. Sim2Real 部署</a></li>
+        <li><a href="#alignment">13. 对齐与排错</a></li>
+        <li><a href="#safety">14. 真机安全清单</a></li>
+        <li><a href="#faq">15. FAQ</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+      <header class="hero">
+        <span class="eyebrow">Unitree RL GYM 项目讲解</span>
+        <h1>从设计、训练框架到策略部署的完整代码导读</h1>
+        <p class="lead">
+          本文面向刚接触项目的读者，按“快速入门、深入原理、开发扩展、部署排错”的顺序说明
+          Unitree RL GYM 的设计思路、核心模块、PPO 训练实现、机器人环境扩展方法，以及从 Isaac Gym 训练到 Mujoco 和真机部署的对齐要点。
+        </p>
+        <div class="meta-grid">
+          <div class="card">
+            <strong>适合读者</strong>
+            <p>第一次接触本仓库，想理解并修改训练/部署链路的人。</p>
+          </div>
+          <div class="card">
+            <strong>主要目标</strong>
+            <p>看懂架构、训练现有任务、改造机器人、导出策略、定位部署问题。</p>
+          </div>
+          <div class="card">
+            <strong>核心框架</strong>
+            <p>Isaac Gym、rsl_rl、Mujoco、unitree_sdk2_python。</p>
+          </div>
+          <div class="card">
+            <strong>聚焦范围</strong>
+            <p>Python 训练和 Python 部署主链路，不展开 C++/LibTorch 示例。</p>
+          </div>
+        </div>
+      </header>
+
+      <section id="overview">
+        <h2>1. 项目概览</h2>
+        <p>
+          Unitree RL GYM 是一个基于 legged_gym 思路改造的四足/人形机器人强化学习仓库。
+          它用 Isaac Gym 做大规模并行物理仿真，用随仓库携带的 rsl_rl 实现 PPO 训练，
+          用 TorchScript 导出策略，再把策略放到 Mujoco 或 Unitree 真机控制程序里运行。
+        </p>
+        <div class="two-col">
+          <div class="card">
+            <h3>支持对象</h3>
+            <ul>
+              <li><code>go2</code>：四足机器人，直接使用 <code>LeggedRobot</code> 基类。</li>
+              <li><code>g1</code>：人形机器人，使用 <code>G1Robot</code> 定制观测、相位和奖励。</li>
+              <li><code>h1</code>：人形机器人，使用 <code>H1Robot</code> 定制人形步态逻辑。</li>
+              <li><code>h1_2</code>：H1_2 人形机器人，结构与 G1/H1 类似。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>核心思想</h3>
+            <p>
+              训练阶段的环境、观测、动作、奖励和控制频率，必须在部署阶段被严格复现。
+              Mujoco 和真机并不会重新训练策略，它们只加载导出的 <code>.pt</code> 策略，
+              然后按同样的观测顺序和缩放方式推理动作。
+            </p>
+          </div>
+        </div>
+
+        <h3>整体框架图</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 470" role="img" aria-label="Unitree RL GYM overall architecture">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+
+            <rect class="box box-blue" x="40" y="60" width="190" height="90"></rect>
+            <text class="svg-title" x="70" y="95">机器人配置</text>
+            <text class="svg-small" x="70" y="120">URDF / MJCF</text>
+            <text class="svg-small" x="70" y="140">关节、PD、奖励、PPO</text>
+
+            <rect class="box box-blue" x="300" y="60" width="190" height="90"></rect>
+            <text class="svg-title" x="333" y="95">Isaac Gym 环境</text>
+            <text class="svg-small" x="333" y="120">LeggedRobot</text>
+            <text class="svg-small" x="333" y="140">并行采样和物理仿真</text>
+
+            <rect class="box box-green" x="560" y="60" width="180" height="90"></rect>
+            <text class="svg-title" x="600" y="95">rsl_rl PPO</text>
+            <text class="svg-small" x="600" y="120">OnPolicyRunner</text>
+            <text class="svg-small" x="600" y="140">Actor-Critic / LSTM</text>
+
+            <rect class="box box-orange" x="800" y="60" width="140" height="90"></rect>
+            <text class="svg-title" x="825" y="95">Checkpoint</text>
+            <text class="svg-small" x="825" y="120">model_*.pt</text>
+            <text class="svg-small" x="825" y="140">TensorBoard logs</text>
+
+            <rect class="box" x="300" y="220" width="190" height="90"></rect>
+            <text class="svg-title" x="342" y="255">Play 回放</text>
+            <text class="svg-small" x="342" y="280">关闭随机化</text>
+            <text class="svg-small" x="342" y="300">导出 TorchScript</text>
+
+            <rect class="box box-orange" x="560" y="220" width="180" height="90"></rect>
+            <text class="svg-title" x="605" y="255">策略文件</text>
+            <text class="svg-small" x="605" y="280">policy_1.pt</text>
+            <text class="svg-small" x="605" y="300">policy_lstm_1.pt</text>
+
+            <rect class="box box-green" x="210" y="370" width="220" height="70"></rect>
+            <text class="svg-title" x="260" y="405">Mujoco Sim2Sim</text>
+            <text class="svg-small" x="260" y="425">YAML + XML + PD</text>
+
+            <rect class="box box-red" x="560" y="370" width="220" height="70"></rect>
+            <text class="svg-title" x="612" y="405">Unitree 真机</text>
+            <text class="svg-small" x="612" y="425">DDS + LowState/LowCmd</text>
+
+            <path class="arrow arrow-blue" marker-end="url(#arrow)" d="M230 105 H300"></path>
+            <path class="arrow arrow-blue" marker-end="url(#arrow)" d="M490 105 H560"></path>
+            <path class="arrow arrow-blue" marker-end="url(#arrow)" d="M740 105 H800"></path>
+            <path class="arrow" marker-end="url(#arrow)" d="M870 150 C850 210 700 205 650 220"></path>
+            <path class="arrow" marker-end="url(#arrow)" d="M490 265 H560"></path>
+            <path class="arrow" marker-end="url(#arrow)" d="M650 310 C620 345 430 350 350 370"></path>
+            <path class="arrow" marker-end="url(#arrow)" d="M650 310 V370"></path>
+          </svg>
+        </div>
+      </section>
+
+      <section id="workflow">
+        <h2>2. 总体流程：Train -> Play -> Sim2Sim -> Sim2Real</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>阶段</th>
+              <th>入口文件</th>
+              <th>输入</th>
+              <th>输出</th>
+              <th>关键风险</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge green">Train</span></td>
+              <td><code>legged_gym/scripts/train.py</code></td>
+              <td>任务名、机器人配置、PPO 配置</td>
+              <td><code>logs/&lt;experiment&gt;/.../model_*.pt</code></td>
+              <td>奖励、终止、观测和随机化设计不合理会导致策略学偏。</td>
+            </tr>
+            <tr>
+              <td><span class="badge green">Play</span></td>
+              <td><code>legged_gym/scripts/play.py</code></td>
+              <td>训练 checkpoint</td>
+              <td>可视化效果和 TorchScript 策略</td>
+              <td>导出的策略必须和部署侧观测结构一致。</td>
+            </tr>
+            <tr>
+              <td><span class="badge orange">Sim2Sim</span></td>
+              <td><code>deploy/deploy_mujoco/deploy_mujoco.py</code></td>
+              <td>策略、Mujoco XML、YAML 参数</td>
+              <td>Mujoco 中的策略闭环效果</td>
+              <td>XML/URDF、控制频率、观测缩放不一致。</td>
+            </tr>
+            <tr>
+              <td><span class="badge red">Sim2Real</span></td>
+              <td><code>deploy/deploy_real/deploy_real.py</code></td>
+              <td>策略、真机 YAML、网络接口</td>
+              <td>真机低层关节控制</td>
+              <td>关节映射、IMU 坐标、PD 增益和遥控器流程风险最高。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <pre><code># 训练
+python legged_gym/scripts/train.py --task=g1 --headless
+
+# 回放并导出策略
+python legged_gym/scripts/play.py --task=g1
+
+# Mujoco 部署
+python deploy/deploy_mujoco/deploy_mujoco.py g1.yaml
+
+# 真机部署
+python deploy/deploy_real/deploy_real.py enp3s0 g1.yaml</code></pre>
+      </section>
+
+      <section id="map">
+        <h2>3. 代码地图</h2>
+        <p>理解本项目时，先把目录职责分清楚。训练、算法和部署虽然在同一个仓库里，但它们的边界很清晰。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>目录/文件</th>
+              <th>职责</th>
+              <th>读代码时关注点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>legged_gym/scripts/</code></td>
+              <td>训练和回放命令入口。</td>
+              <td><code>train.py</code> 很短，是理解调用链的入口。</td>
+            </tr>
+            <tr>
+              <td><code>legged_gym/envs/</code></td>
+              <td>机器人任务、环境基类、机器人配置。</td>
+              <td>任务注册、观测拼接、奖励函数、终止逻辑。</td>
+            </tr>
+            <tr>
+              <td><code>legged_gym/utils/</code></td>
+              <td>命令行参数、配置覆盖、任务注册、策略导出。</td>
+              <td><code>task_registry.py</code> 串起环境和算法。</td>
+            </tr>
+            <tr>
+              <td><code>rsl_rl/</code></td>
+              <td>PPO、Actor-Critic、RolloutStorage、Runner。</td>
+              <td>采样、存储、收益估计、策略更新。</td>
+            </tr>
+            <tr>
+              <td><code>resources/robots/</code></td>
+              <td>URDF、XML、网格等机器人资源。</td>
+              <td>训练和部署模型文件是否对应。</td>
+            </tr>
+            <tr>
+              <td><code>deploy/</code></td>
+              <td>Mujoco 和真机部署。</td>
+              <td>观测构造、动作映射、YAML 参数、控制频率。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note">
+          <h3>根目录常量</h3>
+          <p>
+            <code>legged_gym/__init__.py</code> 中的 <code>LEGGED_GYM_ROOT_DIR</code> 被训练、部署和 YAML 路径替换共同使用。
+            所以移动仓库或从不同工作目录运行时，优先检查这个根路径是否正确。
+          </p>
+        </div>
+      </section>
+
+      <section id="reading">
+        <h2>4. 源码阅读路线</h2>
+        <p>新手不要从 PPO 算法文件开始读。更稳妥的路线是先看入口，再看注册，再看环境，再看算法，最后看部署如何复现训练时的输入输出。</p>
+
+        <ol>
+          <li><code>README_zh.md</code>：理解仓库对外给出的 Train、Play、Sim2Sim、Sim2Real 工作流。</li>
+          <li><code>legged_gym/scripts/train.py</code>：确认训练入口只做三件事：创建环境、创建 Runner、调用 learn。</li>
+          <li><code>legged_gym/envs/__init__.py</code>：看任务名如何映射到环境类、环境配置和 PPO 配置。</li>
+          <li><code>legged_gym/utils/task_registry.py</code>：看命令行参数如何覆盖配置，环境和算法如何被实例化。</li>
+          <li><code>legged_gym/envs/base/legged_robot.py</code>：看 Isaac Gym 中单步环境如何计算动作、仿真、奖励、reset 和观测。</li>
+          <li><code>legged_gym/envs/g1/g1_env.py</code> 或 <code>h1/h1_env.py</code>：看人形机器人如何改写观测、相位和奖励。</li>
+          <li><code>rsl_rl/rsl_rl/runners/on_policy_runner.py</code>：看训练循环如何采样轨迹并调用 PPO 更新。</li>
+          <li><code>rsl_rl/rsl_rl/algorithms/ppo.py</code>：看 PPO 的 clipped objective、value loss、entropy 和 KL 调整。</li>
+          <li><code>deploy/deploy_mujoco/deploy_mujoco.py</code>：看部署侧如何手工拼出同样的观测向量。</li>
+          <li><code>deploy/deploy_real/deploy_real.py</code>：看真机侧如何从 LowState 读取状态，构造观测并发布 LowCmd。</li>
+        </ol>
+
+        <div class="mermaid-static">flowchart LR
+  README_zh --> train_py
+  train_py --> task_registry
+  task_registry --> LeggedRobot
+  LeggedRobot --> OnPolicyRunner
+  OnPolicyRunner --> PPO
+  PPO --> play_py
+  play_py --> deploy_mujoco
+  deploy_mujoco --> deploy_real</div>
+      </section>
+
+      <section id="training">
+        <h2>5. 训练框架</h2>
+        <p>
+          训练入口 <code>train.py</code> 本身很薄，它把复杂性委托给 <code>task_registry</code> 和 <code>OnPolicyRunner</code>。
+          这是一种典型的注册表设计：命令行只传任务名，注册表根据任务名找到环境类和配置对象。
+        </p>
+
+        <h3>训练调用链</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 360" role="img" aria-label="Training sequence">
+            <defs>
+              <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+            <line x1="100" y1="70" x2="100" y2="310" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="300" y1="70" x2="300" y2="310" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="500" y1="70" x2="500" y2="310" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="700" y1="70" x2="700" y2="310" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="880" y1="70" x2="880" y2="310" stroke="#cbd5e1" stroke-width="2"></line>
+
+            <text class="svg-title" x="60" y="40">train.py</text>
+            <text class="svg-title" x="248" y="40">TaskRegistry</text>
+            <text class="svg-title" x="463" y="40">Env</text>
+            <text class="svg-title" x="644" y="40">OnPolicyRunner</text>
+            <text class="svg-title" x="858" y="40">PPO</text>
+
+            <path class="arrow" marker-end="url(#arrow2)" d="M110 95 H292"></path>
+            <text class="svg-small" x="145" y="88">make_env(task)</text>
+            <path class="arrow" marker-end="url(#arrow2)" d="M310 135 H492"></path>
+            <text class="svg-small" x="333" y="128">task_class(cfg, sim_params)</text>
+            <path class="arrow" marker-end="url(#arrow2)" d="M110 175 H692"></path>
+            <text class="svg-small" x="330" y="168">make_alg_runner(env)</text>
+            <path class="arrow" marker-end="url(#arrow2)" d="M710 215 H872"></path>
+            <text class="svg-small" x="740" y="208">act / update</text>
+            <path class="arrow" marker-end="url(#arrow2)" d="M695 255 H508"></path>
+            <text class="svg-small" x="545" y="248">env.step(actions)</text>
+            <path class="arrow" marker-end="url(#arrow2)" d="M505 295 H692"></path>
+            <text class="svg-small" x="530" y="288">obs, rewards, dones</text>
+          </svg>
+        </div>
+
+        <h3>入口文件做了什么</h3>
+        <pre><code>def train(args):
+    env, env_cfg = task_registry.make_env(name=args.task, args=args)
+    ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
+    ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations,
+                     init_at_random_ep_len=True)</code></pre>
+
+        <p>这一段代码对应三个动作：</p>
+        <ul>
+          <li><code>make_env</code>：找到任务类和配置，设置随机种子，解析 Isaac Gym 参数，创建向量化环境。</li>
+          <li><code>make_alg_runner</code>：把 PPO 配置转成字典，创建 <code>OnPolicyRunner</code>，处理日志目录和 resume。</li>
+          <li><code>learn</code>：进入采样和更新循环。</li>
+        </ul>
+
+        <h3>任务注册</h3>
+        <p>
+          <code>legged_gym/envs/__init__.py</code> 把任务名、环境类、环境配置和训练配置绑定在一起。
+          用户传入 <code>--task=g1</code> 时，注册表就能找到 <code>G1Robot</code>、<code>G1RoughCfg</code> 和 <code>G1RoughCfgPPO</code>。
+        </p>
+
+        <pre><code>task_registry.register("go2", LeggedRobot, GO2RoughCfg(), GO2RoughCfgPPO())
+task_registry.register("h1", H1Robot, H1RoughCfg(), H1RoughCfgPPO())
+task_registry.register("h1_2", H1_2Robot, H1_2RoughCfg(), H1_2RoughCfgPPO())
+task_registry.register("g1", G1Robot, G1RoughCfg(), G1RoughCfgPPO())</code></pre>
+
+        <div class="note">
+          <h3>命令行覆盖配置</h3>
+          <p>
+            <code>helpers.update_cfg_from_args</code> 会把 <code>--num_envs</code>、<code>--seed</code>、<code>--max_iterations</code>、
+            <code>--resume</code>、<code>--load_run</code>、<code>--checkpoint</code> 等命令行参数写回配置对象。
+            所以同一个配置类既能作为默认值，也能被 CLI 快速覆盖。
+          </p>
+        </div>
+      </section>
+
+      <section id="env">
+        <h2>6. 环境实现</h2>
+        <p>
+          环境的核心是 <code>BaseTask -> LeggedRobot -> 具体机器人类</code>。
+          <code>BaseTask</code> 定义 rsl_rl 需要的向量化环境接口，
+          <code>LeggedRobot</code> 实现通用腿式机器人仿真逻辑，G1/H1/H1_2 再覆盖人形机器人特有的观测和奖励。
+        </p>
+
+        <h3>类图</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 430" role="img" aria-label="Class diagram">
+            <defs>
+              <marker id="arrow3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+            <rect class="box box-blue" x="60" y="60" width="190" height="82"></rect>
+            <text class="svg-title" x="110" y="92">BaseTask</text>
+            <text class="svg-small" x="88" y="118">reset / step / render</text>
+
+            <rect class="box box-blue" x="330" y="60" width="210" height="82"></rect>
+            <text class="svg-title" x="385" y="92">LeggedRobot</text>
+            <text class="svg-small" x="360" y="118">PD / sim / reward / obs</text>
+
+            <rect class="box box-green" x="620" y="30" width="145" height="70"></rect>
+            <text class="svg-title" x="662" y="62">G1Robot</text>
+            <text class="svg-small" x="646" y="84">phase + rewards</text>
+
+            <rect class="box box-green" x="620" y="120" width="145" height="70"></rect>
+            <text class="svg-title" x="662" y="152">H1Robot</text>
+            <text class="svg-small" x="646" y="174">phase + rewards</text>
+
+            <rect class="box box-green" x="620" y="210" width="145" height="70"></rect>
+            <text class="svg-title" x="652" y="242">H1_2Robot</text>
+            <text class="svg-small" x="646" y="264">phase + rewards</text>
+
+            <rect class="box box-green" x="620" y="300" width="145" height="70"></rect>
+            <text class="svg-title" x="673" y="332">Go2</text>
+            <text class="svg-small" x="640" y="354">uses LeggedRobot</text>
+
+            <rect class="box box-orange" x="60" y="250" width="190" height="82"></rect>
+            <text class="svg-title" x="92" y="282">LeggedRobotCfg</text>
+            <text class="svg-small" x="90" y="308">env / control / reward</text>
+
+            <rect class="box box-orange" x="330" y="250" width="210" height="82"></rect>
+            <text class="svg-title" x="374" y="282">RobotCfg</text>
+            <text class="svg-small" x="360" y="308">override URDF / PD / PPO</text>
+
+            <rect class="box" x="60" y="360" width="190" height="50"></rect>
+            <text class="svg-title" x="95" y="392">LeggedRobotCfgPPO</text>
+
+            <rect class="box" x="330" y="360" width="210" height="50"></rect>
+            <text class="svg-title" x="386" y="392">RobotCfgPPO</text>
+
+            <path class="arrow" marker-end="url(#arrow3)" d="M250 101 H330"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M540 101 C575 92 590 70 620 65"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M540 101 C575 110 590 150 620 155"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M540 101 C575 142 590 240 620 245"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M540 101 C575 170 590 330 620 335"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M250 291 H330"></path>
+            <path class="arrow" marker-end="url(#arrow3)" d="M250 385 H330"></path>
+          </svg>
+        </div>
+
+        <h3>单步环境流程</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 280" role="img" aria-label="Environment step flow">
+            <defs>
+              <marker id="arrow4" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+            <rect class="box box-blue" x="30" y="90" width="130" height="72"></rect>
+            <text class="svg-title" x="70" y="122">action</text>
+            <text class="svg-small" x="55" y="146">clip actions</text>
+
+            <rect class="box box-blue" x="205" y="90" width="140" height="72"></rect>
+            <text class="svg-title" x="245" y="122">PD torque</text>
+            <text class="svg-small" x="230" y="146">decimation loop</text>
+
+            <rect class="box box-green" x="390" y="90" width="140" height="72"></rect>
+            <text class="svg-title" x="430" y="122">simulate</text>
+            <text class="svg-small" x="420" y="146">Isaac Gym step</text>
+
+            <rect class="box box-orange" x="575" y="90" width="160" height="72"></rect>
+            <text class="svg-title" x="612" y="122">post step</text>
+            <text class="svg-small" x="596" y="146">state / reward / reset</text>
+
+            <rect class="box box-red" x="790" y="90" width="150" height="72"></rect>
+            <text class="svg-title" x="826" y="122">return</text>
+            <text class="svg-small" x="812" y="146">obs, reward, done</text>
+
+            <path class="arrow" marker-end="url(#arrow4)" d="M160 126 H205"></path>
+            <path class="arrow" marker-end="url(#arrow4)" d="M345 126 H390"></path>
+            <path class="arrow" marker-end="url(#arrow4)" d="M530 126 H575"></path>
+            <path class="arrow" marker-end="url(#arrow4)" d="M735 126 H790"></path>
+
+            <text class="svg-small" x="210" y="218">target = action * action_scale + default_joint_angles</text>
+            <text class="svg-small" x="575" y="218">check_termination -> compute_reward -> reset_idx -> compute_observations</text>
+          </svg>
+        </div>
+
+        <h3>观测构造</h3>
+        <p>
+          基类 <code>LeggedRobot.compute_observations</code> 默认使用线速度、角速度、重力投影、速度命令、关节位置偏差、关节速度和上一帧动作。
+          人形机器人如 G1 会改为更适合部署的结构：角速度、重力投影、命令、关节位置、关节速度、上一帧动作和步态相位的 <code>sin/cos</code>。
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>字段</th>
+              <th>训练中的来源</th>
+              <th>部署侧对应</th>
+              <th>为什么重要</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>角速度</td>
+              <td><code>base_ang_vel * obs_scales.ang_vel</code></td>
+              <td>IMU gyroscope 或 Mujoco <code>qvel[3:6]</code></td>
+              <td>坐标系或缩放错会导致姿态控制异常。</td>
+            </tr>
+            <tr>
+              <td>重力投影</td>
+              <td><code>projected_gravity</code></td>
+              <td>由四元数计算 gravity orientation</td>
+              <td>决定策略对机体姿态的感知。</td>
+            </tr>
+            <tr>
+              <td>速度命令</td>
+              <td><code>commands[:, :3] * commands_scale</code></td>
+              <td>遥控器或 YAML 初始命令乘 <code>cmd_scale</code></td>
+              <td>命令范围不同会让策略收到未见过的输入。</td>
+            </tr>
+            <tr>
+              <td>关节位置</td>
+              <td><code>(dof_pos - default_dof_pos) * dof_pos_scale</code></td>
+              <td><code>(qj - default_angles) * dof_pos_scale</code></td>
+              <td>默认角必须和训练配置一致。</td>
+            </tr>
+            <tr>
+              <td>上一帧动作</td>
+              <td><code>self.actions</code></td>
+              <td>部署循环保存的 <code>action</code></td>
+              <td>提供动作平滑和历史信息。</td>
+            </tr>
+            <tr>
+              <td>步态相位</td>
+              <td><code>sin(2*pi*phase), cos(...)</code></td>
+              <td>用控制计数和周期 <code>0.8</code> 计算</td>
+              <td>训练和部署周期不同会打乱左右脚节律。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>奖励函数</h3>
+        <p>
+          <code>LeggedRobot._prepare_reward_function</code> 会扫描配置中非零的 <code>rewards.scales</code>，
+          然后动态绑定同名的 <code>_reward_xxx</code> 函数。也就是说，新增奖励通常需要两处同时修改：
+          在环境类中写 <code>_reward_new_term</code>，在配置类中添加 <code>new_term = 权重</code>。
+        </p>
+
+        <div class="warning">
+          <h3>奖励权重的常见误区</h3>
+          <p>
+            负奖励不是越多越好。若 <code>only_positive_rewards=True</code>，总奖励会被裁剪到非负，
+            早期过强的负项可能让策略缺少可学习信号。新增奖励时建议先看单项曲线，再看总回报。
+          </p>
+        </div>
+      </section>
+
+      <section id="config">
+        <h2>7. 配置字段索引</h2>
+        <p>
+          项目大量使用 Python class 作为配置容器。它不是普通 YAML，但读法类似：外层 class 是配置组，内层 class 是子配置。
+          训练启动时会通过 <code>class_to_dict</code> 转成字典传给 rsl_rl。
+        </p>
+
+        <h3><code>LeggedRobotCfg</code> 常用字段</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>字段组</th>
+              <th>关键字段</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>env</code></td>
+              <td><code>num_envs</code>、<code>num_observations</code>、<code>num_privileged_obs</code>、<code>num_actions</code></td>
+              <td>决定向量化环境规模和策略输入输出维度。部署侧 <code>num_obs</code>、<code>num_actions</code> 必须匹配导出的策略。</td>
+            </tr>
+            <tr>
+              <td><code>init_state</code></td>
+              <td><code>pos</code>、<code>default_joint_angles</code></td>
+              <td>机器人初始高度和动作零点。部署 YAML 的 <code>default_angles</code> 应与之对应。</td>
+            </tr>
+            <tr>
+              <td><code>control</code></td>
+              <td><code>stiffness</code>、<code>damping</code>、<code>action_scale</code>、<code>decimation</code></td>
+              <td>动作到目标关节角的映射和 PD 控制频率。Mujoco 的 <code>simulation_dt * control_decimation</code> 应对齐策略周期。</td>
+            </tr>
+            <tr>
+              <td><code>asset</code></td>
+              <td><code>file</code>、<code>foot_name</code>、<code>terminate_after_contacts_on</code></td>
+              <td>URDF 路径、足端索引、碰撞终止条件。</td>
+            </tr>
+            <tr>
+              <td><code>domain_rand</code></td>
+              <td><code>randomize_friction</code>、<code>randomize_base_mass</code>、<code>push_robots</code></td>
+              <td>提升策略鲁棒性，但过强会增加训练难度。</td>
+            </tr>
+            <tr>
+              <td><code>rewards</code></td>
+              <td><code>scales</code>、<code>base_height_target</code>、<code>tracking_sigma</code></td>
+              <td>决定优化目标，是训练效果最敏感的配置之一。</td>
+            </tr>
+            <tr>
+              <td><code>normalization</code></td>
+              <td><code>obs_scales</code>、<code>clip_observations</code>、<code>clip_actions</code></td>
+              <td>观测和动作裁剪缩放。部署侧必须复现观测缩放。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3><code>LeggedRobotCfgPPO</code> 常用字段</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>字段组</th>
+              <th>关键字段</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>policy</code></td>
+              <td><code>actor_hidden_dims</code>、<code>critic_hidden_dims</code>、<code>rnn_type</code>、<code>rnn_hidden_size</code></td>
+              <td>定义 Actor/Critic 网络。G1/H1 常用 <code>ActorCriticRecurrent</code> 和 LSTM。</td>
+            </tr>
+            <tr>
+              <td><code>algorithm</code></td>
+              <td><code>clip_param</code>、<code>gamma</code>、<code>lam</code>、<code>desired_kl</code>、<code>learning_rate</code></td>
+              <td>PPO 更新的核心超参数。</td>
+            </tr>
+            <tr>
+              <td><code>runner</code></td>
+              <td><code>policy_class_name</code>、<code>num_steps_per_env</code>、<code>max_iterations</code>、<code>experiment_name</code></td>
+              <td>控制训练循环、日志目录和策略类型。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Mujoco YAML 与 Real YAML</h3>
+        <div class="two-col">
+          <div class="card">
+            <h3>Mujoco YAML</h3>
+            <ul>
+              <li><code>policy_path</code>：TorchScript 策略路径。</li>
+              <li><code>xml_path</code>：Mujoco 模型路径。</li>
+              <li><code>simulation_dt</code> 和 <code>control_decimation</code>：共同决定策略控制周期。</li>
+              <li><code>kps</code>、<code>kds</code>、<code>default_angles</code>：PD 控制和动作零点。</li>
+              <li><code>ang_vel_scale</code>、<code>dof_pos_scale</code>、<code>dof_vel_scale</code>、<code>cmd_scale</code>：观测缩放。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Real YAML</h3>
+            <ul>
+              <li><code>control_dt</code>：真机控制周期。</li>
+              <li><code>msg_type</code>：<code>hg</code> 或 <code>go</code>，决定 DDS 消息类型。</li>
+              <li><code>imu_type</code>：IMU 在 <code>torso</code> 或 <code>pelvis</code>，影响坐标变换。</li>
+              <li><code>leg_joint2motor_idx</code>：策略动作维度到电机索引的映射。</li>
+              <li><code>max_cmd</code>：遥控器输入映射到速度命令的最大范围。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="ppo">
+        <h2>8. PPO 深入笔记</h2>
+        <p>
+          本仓库的算法层来自 rsl_rl。训练循环在 <code>OnPolicyRunner.learn</code> 中，
+          PPO 更新在 <code>rsl_rl/rsl_rl/algorithms/ppo.py</code> 中，
+          网络结构在 <code>ActorCritic</code> 和 <code>ActorCriticRecurrent</code> 中。
+        </p>
+
+        <h3>训练循环的张量流</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>变量</th>
+              <th>典型形状</th>
+              <th>含义</th>
+              <th>来源</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>obs</code></td>
+              <td><code>[num_envs, num_obs]</code></td>
+              <td>Actor 输入。</td>
+              <td><code>env.get_observations()</code> 和 <code>env.step()</code></td>
+            </tr>
+            <tr>
+              <td><code>critic_obs</code></td>
+              <td><code>[num_envs, num_privileged_obs]</code> 或 <code>[num_envs, num_obs]</code></td>
+              <td>Critic 输入，可包含特权信息。</td>
+              <td><code>privileged_obs</code> 优先，否则使用 <code>obs</code></td>
+            </tr>
+            <tr>
+              <td><code>actions</code></td>
+              <td><code>[num_envs, num_actions]</code></td>
+              <td>策略采样动作。</td>
+              <td><code>PPO.act</code> 调用 Actor 分布采样。</td>
+            </tr>
+            <tr>
+              <td><code>rewards</code></td>
+              <td><code>[num_envs]</code></td>
+              <td>环境奖励。</td>
+              <td><code>env.step(actions)</code></td>
+            </tr>
+            <tr>
+              <td><code>dones</code></td>
+              <td><code>[num_envs]</code></td>
+              <td>是否 reset。</td>
+              <td>碰撞、姿态或 episode 超时。</td>
+            </tr>
+            <tr>
+              <td><code>advantages</code></td>
+              <td><code>[num_steps, num_envs, 1]</code></td>
+              <td>策略梯度使用的优势估计。</td>
+              <td><code>RolloutStorage.compute_returns</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Actor-Critic</h3>
+        <p>
+          <code>ActorCritic</code> 中 Actor 输出动作均值，Critic 输出状态价值。
+          动作分布是对角高斯分布：均值来自 Actor，标准差 <code>std</code> 是可训练参数。
+          训练时用 <code>distribution.sample()</code> 采样动作，部署时用 <code>act_inference</code> 直接输出均值动作。
+        </p>
+
+        <pre><code>mean = actor(observations)
+distribution = Normal(mean, mean * 0.0 + std)
+action = distribution.sample()
+value = critic(critic_observations)</code></pre>
+
+        <h3>LSTM 记忆</h3>
+        <p>
+          G1 的配置中 <code>policy_class_name = "ActorCriticRecurrent"</code>，
+          并配置 <code>rnn_type = "lstm"</code>、<code>rnn_hidden_size = 64</code>。
+          Recurrent 版本会在 Actor 和 Critic 前各放一个 RNN 记忆模块。
+          采样时保存 hidden state，更新时用带 mask 的序列 batch 训练。
+        </p>
+
+        <div class="note">
+          <h3>为什么部署时 LSTM 策略有状态</h3>
+          <p>
+            <code>export_policy_as_jit</code> 对 LSTM 策略会导出 <code>PolicyExporterLSTM</code>。
+            它在模块内部注册 <code>hidden_state</code> 和 <code>cell_state</code> buffer。
+            因此部署循环每次调用策略时，策略会保留上一时刻记忆。若需要重新开始一段 episode，应调用导出的 <code>reset_memory</code>。
+          </p>
+        </div>
+
+        <h3>GAE 与 Returns</h3>
+        <p>
+          PPO 需要优势函数 <code>A_t</code>。rsl_rl 在 <code>RolloutStorage</code> 中根据最后一个价值估计、奖励、done 和 timeout 信息计算 returns 和 advantages。
+          常见的 GAE 形式为：
+        </p>
+
+        <pre><code>delta_t = r_t + gamma * V(s_{t+1}) * (1 - done_t) - V(s_t)
+A_t = delta_t + gamma * lambda * (1 - done_t) * A_{t+1}
+return_t = A_t + V(s_t)</code></pre>
+
+        <p>
+          其中 <code>gamma</code> 来自 <code>algorithm.gamma</code>，<code>lambda</code> 来自 <code>algorithm.lam</code>。
+          <code>process_env_step</code> 会对 time-out 做 bootstrap，避免因为 episode 达到最大长度而错误惩罚价值估计。
+        </p>
+
+        <h3>PPO clipped objective</h3>
+        <p>代码中的核心比率是新旧策略下同一动作概率的比值：</p>
+
+        <pre><code>ratio = exp(new_log_prob - old_log_prob)</code></pre>
+
+        <p>策略损失使用 clipped surrogate：</p>
+
+        <pre><code>L_policy = mean(max(-A * ratio,
+                    -A * clamp(ratio, 1 - clip, 1 + clip)))</code></pre>
+
+        <p>
+          这里代码写成负号，是因为 PyTorch 优化器默认最小化 loss。
+          当新策略比旧策略变化太大时，<code>clamp</code> 会限制更新幅度，避免一次训练把策略推得太远。
+        </p>
+
+        <h3>Value loss、Entropy 和 KL 自适应学习率</h3>
+        <ul>
+          <li><code>value_loss</code>：Critic 预测值和 return 的均方误差，可选择 clipped value loss。</li>
+          <li><code>entropy</code>：鼓励探索，权重由 <code>entropy_coef</code> 控制。</li>
+          <li><code>desired_kl</code>：若 KL 过大则降低学习率，过小则提高学习率。</li>
+        </ul>
+
+        <pre><code>loss = surrogate_loss + value_loss_coef * value_loss - entropy_coef * entropy</code></pre>
+
+        <div class="warning">
+          <h3>调参建议</h3>
+          <p>
+            若训练震荡明显，先看 KL、学习率、动作标准差和 reward 曲线。
+            若策略不动或动作很小，检查奖励是否过弱、entropy 是否太低、动作尺度是否太小。
+            若动作发散，检查终止条件、关节限位、PD 参数和观测缩放。
+          </p>
+        </div>
+      </section>
+
+      <section id="play">
+        <h2>9. Play 与策略导出</h2>
+        <p>
+          <code>play.py</code> 是训练和部署之间的桥。它会创建一个更小、更稳定的测试环境，
+          加载 checkpoint，获取推理策略，然后导出 TorchScript。
+        </p>
+
+        <h3>Play 会覆盖哪些训练配置</h3>
+        <ul>
+          <li><code>num_envs</code> 限制到最多 100，便于可视化。</li>
+          <li>关闭地形 curriculum、观测噪声、摩擦随机化和 push。</li>
+          <li>设置 <code>env_cfg.env.test = True</code>，使仿真按接近实时节奏播放。</li>
+          <li>设置 <code>train_cfg.runner.resume = True</code>，从日志目录加载模型。</li>
+        </ul>
+
+        <h3>导出文件</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>策略类型</th>
+              <th>导出文件</th>
+              <th>适用场景</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>普通 MLP</td>
+              <td><code>logs/&lt;experiment&gt;/exported/policies/policy_1.pt</code></td>
+              <td>无 RNN 记忆的策略。</td>
+            </tr>
+            <tr>
+              <td>LSTM / Recurrent</td>
+              <td><code>logs/&lt;experiment&gt;/exported/policies/policy_lstm_1.pt</code></td>
+              <td>G1/H1 等需要历史记忆的人形策略。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note">
+          <h3>部署使用自己的训练模型</h3>
+          <p>
+            默认 YAML 可能指向 <code>deploy/pre_train/&lt;robot&gt;/motion.pt</code>。
+            如果要用自己训练的模型，需要把 YAML 里的 <code>policy_path</code> 改为 <code>play.py</code> 导出的策略文件路径。
+          </p>
+        </div>
+      </section>
+
+      <section id="extend">
+        <h2>10. 新增或改造机器人示例</h2>
+        <p>
+          新增机器人最容易出错的点不是某一个文件，而是训练侧和部署侧的多个配置必须一起改。
+          可以把 G1 或 Go2 当模板：四足优先参考 Go2，人形优先参考 G1/H1。
+        </p>
+
+        <h3>新增机器人流程图</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 270" role="img" aria-label="Add robot flow">
+            <defs>
+              <marker id="arrow5" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+            <rect class="box box-blue" x="30" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="60" y="122">URDF/XML</text>
+            <text class="svg-small" x="50" y="145">resources</text>
+
+            <rect class="box box-blue" x="190" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="228" y="122">Cfg</text>
+            <text class="svg-small" x="205" y="145">关节 / PD / 奖励</text>
+
+            <rect class="box box-green" x="350" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="386" y="122">Env</text>
+            <text class="svg-small" x="370" y="145">观测 / 奖励</text>
+
+            <rect class="box box-green" x="510" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="540" y="122">Registry</text>
+            <text class="svg-small" x="530" y="145">注册 task</text>
+
+            <rect class="box box-orange" x="670" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="704" y="122">Train/Play</text>
+            <text class="svg-small" x="690" y="145">训练并导出</text>
+
+            <rect class="box box-red" x="830" y="90" width="125" height="72"></rect>
+            <text class="svg-title" x="862" y="122">Deploy</text>
+            <text class="svg-small" x="850" y="145">YAML 对齐</text>
+
+            <path class="arrow" marker-end="url(#arrow5)" d="M155 126 H190"></path>
+            <path class="arrow" marker-end="url(#arrow5)" d="M315 126 H350"></path>
+            <path class="arrow" marker-end="url(#arrow5)" d="M475 126 H510"></path>
+            <path class="arrow" marker-end="url(#arrow5)" d="M635 126 H670"></path>
+            <path class="arrow" marker-end="url(#arrow5)" d="M795 126 H830"></path>
+          </svg>
+        </div>
+
+        <h3>以 G1 为模板的改造步骤</h3>
+        <ol>
+          <li>在 <code>resources/robots/</code> 放入新机器人的 URDF 或 XML，并确认关节名称和连杆名称。</li>
+          <li>复制 <code>legged_gym/envs/g1/</code> 或创建新目录，编写 <code>new_robot_config.py</code> 和可选的 <code>new_robot_env.py</code>。</li>
+          <li>在配置中设置 <code>asset.file</code>、<code>asset.foot_name</code>、<code>terminate_after_contacts_on</code>。</li>
+          <li>按 URDF 的关节顺序设置 <code>init_state.default_joint_angles</code>，确保和部署 YAML 的 <code>default_angles</code> 一致。</li>
+          <li>设置 <code>control.stiffness</code>、<code>control.damping</code>、<code>control.action_scale</code> 和 <code>control.decimation</code>。</li>
+          <li>设置 <code>env.num_observations</code>、<code>env.num_privileged_obs</code>、<code>env.num_actions</code>。</li>
+          <li>若使用自定义观测，改写 <code>compute_observations</code>，同时更新 <code>_get_noise_scale_vec</code>。</li>
+          <li>新增奖励函数时，添加 <code>_reward_xxx</code>，并在 <code>rewards.scales.xxx</code> 中给出非零权重。</li>
+          <li>在 <code>legged_gym/envs/__init__.py</code> 注册新任务名。</li>
+          <li>训练、Play 导出策略，再为 Mujoco 和真机准备部署 YAML。</li>
+        </ol>
+
+        <h3>新增机器人检查表</h3>
+        <ul class="checklist">
+          <li>URDF 中关节名称能被配置中的 <code>default_joint_angles</code> 匹配。</li>
+          <li>足端名称能被 <code>foot_name</code> 匹配，否则足端奖励和接触判断会错。</li>
+          <li><code>num_actions</code> 等于策略控制的关节数。</li>
+          <li><code>num_observations</code> 等于 <code>compute_observations</code> 拼接后的长度。</li>
+          <li>训练配置、Mujoco YAML、Real YAML 的 <code>action_scale</code>、<code>default_angles</code>、观测缩放一致。</li>
+          <li>真机 <code>leg_joint2motor_idx</code> 顺序和策略动作顺序一致。</li>
+          <li>新增奖励项在 TensorBoard 中能看到合理数值范围。</li>
+        </ul>
+      </section>
+
+      <section id="sim2sim">
+        <h2>11. Sim2Sim：Mujoco 部署</h2>
+        <p>
+          <code>deploy_mujoco.py</code> 的本质是一个手写控制循环：
+          加载 XML 和 TorchScript 策略，每个 Mujoco 小步都执行 PD 控制，
+          每隔 <code>control_decimation</code> 个仿真步拼一次观测并调用策略。
+        </p>
+
+        <h3>部署流程图</h3>
+        <div class="diagram">
+          <svg viewBox="0 0 980 300" role="img" aria-label="Deployment flow">
+            <defs>
+              <marker id="arrow6" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#64748b"></path>
+              </marker>
+            </defs>
+            <rect class="box box-blue" x="45" y="70" width="150" height="72"></rect>
+            <text class="svg-title" x="82" y="102">YAML</text>
+            <text class="svg-small" x="70" y="126">policy / XML / scales</text>
+
+            <rect class="box box-blue" x="45" y="180" width="150" height="72"></rect>
+            <text class="svg-title" x="86" y="212">状态</text>
+            <text class="svg-small" x="70" y="236">qpos / qvel / quat</text>
+
+            <rect class="box box-green" x="280" y="125" width="155" height="72"></rect>
+            <text class="svg-title" x="320" y="157">观测构造</text>
+            <text class="svg-small" x="304" y="181">obs[0:47]</text>
+
+            <rect class="box box-green" x="520" y="125" width="155" height="72"></rect>
+            <text class="svg-title" x="558" y="157">策略推理</text>
+            <text class="svg-small" x="548" y="181">torch.jit.load</text>
+
+            <rect class="box box-orange" x="760" y="125" width="155" height="72"></rect>
+            <text class="svg-title" x="805" y="157">PD 目标</text>
+            <text class="svg-small" x="782" y="181">default + action*scale</text>
+
+            <path class="arrow" marker-end="url(#arrow6)" d="M195 106 C230 110 240 140 280 150"></path>
+            <path class="arrow" marker-end="url(#arrow6)" d="M195 216 C230 210 240 182 280 172"></path>
+            <path class="arrow" marker-end="url(#arrow6)" d="M435 161 H520"></path>
+            <path class="arrow" marker-end="url(#arrow6)" d="M675 161 H760"></path>
+          </svg>
+        </div>
+
+        <h3>控制频率</h3>
+        <p>
+          以 G1 的 Mujoco YAML 为例，<code>simulation_dt = 0.002</code>，<code>control_decimation = 10</code>，
+          策略控制周期就是 <code>0.002 * 10 = 0.02s</code>，也就是 50Hz。
+          这应与训练侧 <code>sim.dt * control.decimation</code> 和真机 <code>control_dt</code> 对齐。
+        </p>
+
+        <h3>观测顺序</h3>
+        <pre><code>obs[:3] = omega
+obs[3:6] = gravity_orientation
+obs[6:9] = cmd * cmd_scale
+obs[9 : 9 + num_actions] = qj
+obs[9 + num_actions : 9 + 2 * num_actions] = dqj
+obs[9 + 2 * num_actions : 9 + 3 * num_actions] = action
+obs[9 + 3 * num_actions : 9 + 3 * num_actions + 2] = [sin_phase, cos_phase]</code></pre>
+
+        <p>
+          这段顺序必须和训练中的 <code>G1Robot.compute_observations</code> 一致。
+          如果你改了训练观测结构，却没有同步改部署代码，策略会把错误字段当成输入，表现通常会明显失控。
+        </p>
+      </section>
+
+      <section id="sim2real">
+        <h2>12. Sim2Real：Python 真机部署</h2>
+        <p>
+          真机部署在 <code>deploy_real.py</code> 中实现。它比 Mujoco 多了三件事：
+          DDS 通信、遥控器状态机和安全过渡流程。
+          控制核心仍然是：读状态、构造观测、策略推理、动作映射、发布低层关节命令。
+        </p>
+
+        <h3>真机状态机</h3>
+        <div class="mermaid-static">stateDiagram-v2
+  zeroTorque: 零力矩等待 Start
+  moveDefault: 2 秒插值到默认姿态
+  defaultPose: 默认姿态等待 A
+  policyLoop: 策略闭环控制
+  exitNode: Select 或 Ctrl-C 退出
+
+  zeroTorque --> moveDefault: Start
+  moveDefault --> defaultPose: 插值完成
+  defaultPose --> policyLoop: A
+  policyLoop --> exitNode: Select / KeyboardInterrupt</div>
+
+        <h3>DDS 通信</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>配置</th>
+              <th>含义</th>
+              <th>影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>msg_type: hg</code></td>
+              <td>使用 <code>unitree_hg</code> 消息类型。</td>
+              <td>G1 和 H1_2 通常使用该类型。</td>
+            </tr>
+            <tr>
+              <td><code>msg_type: go</code></td>
+              <td>使用 <code>unitree_go</code> 消息类型。</td>
+              <td>H1 等配置可能使用该类型。</td>
+            </tr>
+            <tr>
+              <td><code>lowcmd_topic</code></td>
+              <td>低层命令发布话题。</td>
+              <td>写入关节目标位置、速度、PD 和力矩。</td>
+            </tr>
+            <tr>
+              <td><code>lowstate_topic</code></td>
+              <td>低层状态订阅话题。</td>
+              <td>读取 IMU、关节位置、关节速度和遥控器数据。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>真机观测构造</h3>
+        <p>
+          真机侧从 <code>low_state.motor_state</code> 读取关节位置和速度，从 <code>low_state.imu_state</code> 读取四元数和角速度。
+          若 <code>imu_type = "torso"</code>，还会根据腰部关节把 IMU 数据转换到 pelvis 坐标系。
+        </p>
+
+        <pre><code>cmd[0] = remote_controller.ly
+cmd[1] = remote_controller.lx * -1
+cmd[2] = remote_controller.rx * -1
+
+target_dof_pos = default_angles + action * action_scale
+low_cmd.motor_cmd[motor_idx].q = target_dof_pos[i]
+low_cmd.motor_cmd[motor_idx].kp = kps[i]
+low_cmd.motor_cmd[motor_idx].kd = kds[i]</code></pre>
+
+        <div class="danger">
+          <h3>真机部署的核心风险</h3>
+          <p>
+            真机部署没有仿真 reset 保护。若关节映射、默认角、IMU 坐标、动作尺度或 PD 增益错了，
+            策略可能立即输出危险动作。首次上机应降低速度命令、确认零力矩和急停流程，并先在架空或安全支撑条件下测试。
+          </p>
+        </div>
+      </section>
+
+      <section id="alignment">
+        <h2>13. 对齐与排错</h2>
+        <p>
+          训练、Mujoco、真机三者要对齐的是“策略看到的输入”和“动作产生的物理效果”。
+          策略文件本身只是一个函数，若输入含义变了，它不会知道。
+        </p>
+
+        <h3>排错决策图</h3>
+        <div class="mermaid-static">flowchart TD
+  problem[现象异常] --> trainBad[训练效果差]
+  problem --> mujocoBad[Mujoco 与 Isaac 不一致]
+  problem --> realBad[真机异常]
+
+  trainBad --> reward[检查奖励项曲线]
+  trainBad --> termination[检查终止条件和 reset]
+  trainBad --> random[检查随机化和噪声强度]
+  trainBad --> ppo[检查学习率、KL、动作标准差]
+
+  mujocoBad --> obs[检查观测顺序和缩放]
+  mujocoBad --> action[检查 action_scale 和 default_angles]
+  mujocoBad --> freq[检查 control_dt 与 decimation]
+  mujocoBad --> model[检查 XML/URDF 惯量和关节顺序]
+
+  realBad --> network[检查网卡和 DDS 话题]
+  realBad --> motor[检查 joint2motor_idx]
+  realBad --> imu[检查 IMU 坐标变换]
+  realBad --> safety[降低命令和 PD 增益后复测]</div>
+
+        <h3>训练效果差</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>现象</th>
+              <th>优先检查</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>机器人很快摔倒</td>
+              <td>终止条件、初始姿态、PD 参数、base height 奖励</td>
+              <td>先确保初始姿态稳定，再调奖励。</td>
+            </tr>
+            <tr>
+              <td>动作几乎不动</td>
+              <td>action_scale、entropy、奖励正向信号</td>
+              <td>动作尺度太小或探索不足会学成保守策略。</td>
+            </tr>
+            <tr>
+              <td>回报震荡</td>
+              <td>KL、学习率、随机化强度</td>
+              <td>自适应学习率频繁变化可能说明更新过激。</td>
+            </tr>
+            <tr>
+              <td>走路姿态奇怪</td>
+              <td>相位奖励、足端接触、关节惩罚</td>
+              <td>人形机器人尤其依赖相位和足端接触奖励。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Sim2Sim 不一致</h3>
+        <ul>
+          <li>逐项打印训练观测和 Mujoco 观测的均值、范围，确认字段顺序一致。</li>
+          <li>检查 <code>default_angles</code> 和训练配置中的 <code>default_joint_angles</code> 是否按同一关节顺序排列。</li>
+          <li>检查 <code>action_scale</code> 是否一致，目标角计算是否都是 <code>default + action * scale</code>。</li>
+          <li>检查 <code>simulation_dt * control_decimation</code> 是否等于训练策略周期。</li>
+          <li>检查 XML 的关节轴、惯量、碰撞体是否和训练 URDF 差异过大。</li>
+        </ul>
+
+        <h3>Sim2Real 异常</h3>
+        <ul>
+          <li>若收不到状态，先检查网卡名、机器人网络、DDS 初始化和 topic 名。</li>
+          <li>若关节方向不对，优先检查 <code>leg_joint2motor_idx</code> 和默认角顺序。</li>
+          <li>若姿态反馈异常，检查 <code>imu_type</code> 和 <code>transform_imu_data</code> 是否匹配机器人安装位置。</li>
+          <li>若动作过大，先把遥控器命令范围降到很小，再检查 <code>action_scale</code> 和 PD 增益。</li>
+        </ul>
+      </section>
+
+      <section id="safety">
+        <h2>14. 真机安全清单</h2>
+        <p>真机上机前建议按下面清单逐项确认。任何一项不确定，都应先回到 Mujoco 或低增益测试。</p>
+
+        <div class="two-col">
+          <div class="card">
+            <h3>软件和网络</h3>
+            <ul class="checklist">
+              <li>确认网卡名和运行命令中的 <code>net</code> 参数一致。</li>
+              <li>确认 <code>lowcmd_topic</code> 和 <code>lowstate_topic</code> 与机器人模式匹配。</li>
+              <li>确认 <code>policy_path</code> 指向正确导出的 TorchScript 文件。</li>
+              <li>确认策略类型是 MLP 还是 LSTM，必要时能重置 LSTM 记忆。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>机器人配置</h3>
+            <ul class="checklist">
+              <li>确认 <code>leg_joint2motor_idx</code> 与真实电机顺序一致。</li>
+              <li>确认 <code>default_angles</code> 是机器人安全站立姿态。</li>
+              <li>确认 <code>kps</code>、<code>kds</code> 不高于安全测试范围。</li>
+              <li>确认 <code>imu_type</code> 与机器人 IMU 安装位置一致。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>操作流程</h3>
+            <ul class="checklist">
+              <li>先进入零力矩状态，确认遥控器 Start 逻辑正常。</li>
+              <li>默认姿态插值过程中观察关节是否按预期方向运动。</li>
+              <li>进入策略前，把遥控器速度命令保持在零或极小范围。</li>
+              <li>确认 Select、Ctrl-C 或外部急停流程可用。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>首次闭环</h3>
+            <ul class="checklist">
+              <li>优先在安全支撑或架空条件下测试。</li>
+              <li>先短时间闭环，观察关节目标角是否平滑。</li>
+              <li>逐步增加速度命令，不要直接给最大命令。</li>
+              <li>记录异常时刻的观测、动作和 LowState，用于回放排错。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq">
+        <h2>15. FAQ</h2>
+
+        <h3>为什么训练能走，Mujoco 里却很差？</h3>
+        <p>
+          最常见原因是部署观测和训练观测不一致，其次是控制频率、动作尺度、默认关节角和模型动力学差异。
+          先不要调 PPO，先逐项对齐部署 YAML 和训练配置。
+        </p>
+
+        <h3>修改观测后需要改哪些地方？</h3>
+        <p>
+          至少要改训练环境的 <code>compute_observations</code>、<code>env.num_observations</code>、噪声向量 <code>_get_noise_scale_vec</code>，
+          以及 Mujoco/真机部署里的观测拼接代码和 YAML 的 <code>num_obs</code>。
+        </p>
+
+        <h3>为什么 G1 的 <code>num_observations</code> 是 47？</h3>
+        <p>
+          G1 观测通常由 3 维角速度、3 维重力投影、3 维命令、12 维关节位置、12 维关节速度、12 维上一帧动作、2 维相位组成，
+          合计 <code>3 + 3 + 3 + 12 + 12 + 12 + 2 = 47</code>。
+        </p>
+
+        <h3>为什么 privileged observation 比普通 observation 多？</h3>
+        <p>
+          privileged observation 只给 Critic 使用，可以包含部署时不容易获得的信息，例如基座线速度。
+          Actor 部署时只能用普通 observation，因此普通 observation 必须能在真机侧获得。
+        </p>
+
+        <h3>新增奖励函数后没有生效怎么办？</h3>
+        <p>
+          检查函数名是否是 <code>_reward_xxx</code>，配置中是否存在 <code>rewards.scales.xxx</code> 且权重非零。
+          权重为零的奖励不会被加入 reward function 列表。
+        </p>
+
+        <h3>该先调训练还是先调部署？</h3>
+        <p>
+          如果 Isaac Gym Play 本身效果不好，先调训练。如果 Play 正常但 Mujoco 或真机异常，优先查观测、动作和控制频率对齐。
+        </p>
+
+        <h3>本文为什么不展开 C++ 部署？</h3>
+        <p>
+          本文聚焦 Python 训练、Mujoco 部署和 Python 真机部署主链路。
+          C++/LibTorch 示例属于另一条部署路径，策略文件和观测对齐原则相同，但构建和运行细节不同。
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
