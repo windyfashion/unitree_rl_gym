@@ -761,5 +761,5 @@ class LeggedRobot(BaseTask):
 
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
-        # 接触力超限惩罚，
+        # 接触力超限惩罚，似乎没有使用，有可能扰动本身就会导致接触力超限，抗扰动能力也会导致接触力超限。
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)

@@ -96,6 +96,9 @@ class G1Robot(LeggedRobot):
 
         
     def _reward_contact(self):
+      # 鼓励机器人的实际脚地接触模式与预设的步态时钟保持同步。
+      # 每只脚在"应该着地时着地、应该抬起时抬起"就得分，否则不得分。
+      # 这是一种**步态引导（gait guidance）**奖励，避免策略学出拖脚、双脚同时腾空等不良步态。
         res = torch.zeros(self.num_envs, dtype=torch.float, device=self.device)
         for i in range(self.feet_num):
             is_stance = self.leg_phase[:, i] < 0.55
@@ -104,6 +107,7 @@ class G1Robot(LeggedRobot):
         return res
     
     def _reward_feet_swing_height(self):
+      # 0.08m 是一个刚好够用的安全间隙 —— 足以跨过小障碍、避免拖地，又不至于浪费能量和牺牲稳定性。
         contact = torch.norm(self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.
         pos_error = torch.square(self.feet_pos[:, :, 2] - 0.08) * ~contact
         return torch.sum(pos_error, dim=(1))
@@ -114,11 +118,13 @@ class G1Robot(LeggedRobot):
     
     def _reward_contact_no_vel(self):
         # Penalize contact with no velocity
+        # 惩罚那些脚在地面上但速度不为零的情况（打滑）
         contact = torch.norm(self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.
         contact_feet_vel = self.feet_vel * contact.unsqueeze(-1)
         penalize = torch.square(contact_feet_vel[:, :, :3])
         return torch.sum(penalize, dim=(1,2))
     
     def _reward_hip_pos(self):
+      # 惩罚髋关节出现侧摆、旋转的情况
         return torch.sum(torch.square(self.dof_pos[:,[1,2,7,8]]), dim=1)
     
