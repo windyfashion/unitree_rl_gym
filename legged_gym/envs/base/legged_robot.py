@@ -636,47 +636,70 @@ class LeggedRobot(BaseTask):
     #------------ reward functions----------------
     def _reward_lin_vel_z(self):
         # Penalize z axis base linear velocity
+        # 惩罚机器人z轴方向的速度，期望可以平稳行走
         return torch.square(self.base_lin_vel[:, 2])
     
     def _reward_ang_vel_xy(self):
         # Penalize xy axes base angular velocity
+        # 惩罚机器人roll pitch方向的角速度，期望可以平稳行走。
         return torch.sum(torch.square(self.base_ang_vel[:, :2]), dim=1)
     
     def _reward_orientation(self):
         # Penalize non flat base orientation
+        # 利用基座的四元数将重力向量旋转到基座局部坐标系中。
+        # 所以 self.projected_gravity 是在基座局部坐标系中观察到的重力方向向量。
+        # 如果基座是水平的，局部坐标系中的重力应该大致沿着局部 z 轴（向下或向上），
+        # 因此前两个分量（x, y）应该接近零。如果基座倾斜，重力会有水平分量，
+        # 即 projected_gravity[:, :2] 非零。
+        # 因此，torch.square(self.projected_gravity[:, :2]) 的值越大，表示基座倾斜程度越大，需要惩罚。
         return torch.sum(torch.square(self.projected_gravity[:, :2]), dim=1)
 
     def _reward_base_height(self):
         # Penalize base height away from target
+        # 惩罚基座高度偏离目标高度，期望可以平稳行走。
         base_height = self.root_states[:, 2]
         return torch.square(base_height - self.cfg.rewards.base_height_target)
     
     def _reward_torques(self):
         # Penalize torques
+        # 惩罚关节扭矩，计算每个时间步的扭矩平方和。目的是最小化扭矩，鼓励节能、平滑的控制。
         return torch.sum(torch.square(self.torques), dim=1)
 
     def _reward_dof_vel(self):
         # Penalize dof velocities
+        # 惩罚关节速度，计算每个时间步的关节速度平方和。目的是最小化速度，鼓励节能、平滑的控制。（实际没使用）
         return torch.sum(torch.square(self.dof_vel), dim=1)
     
     def _reward_dof_acc(self):
         # Penalize dof accelerations
+        # 惩罚关节加速度，计算每个时间步的关节加速度平方和。目的是最小化加速度，鼓励节能、平滑的控制。
         return torch.sum(torch.square((self.last_dof_vel - self.dof_vel) / self.dt), dim=1)
     
     def _reward_action_rate(self):
         # Penalize changes in actions
+        # 惩罚关节角度变化，计算每个时间步的动作变化平方和。目的是最小化动作变化，鼓励平滑的控制。（实际没使用）
         return torch.sum(torch.square(self.last_actions - self.actions), dim=1)
     
     def _reward_collision(self):
         # Penalize collisions on selected bodies
+        # 惩罚碰撞，计算所有环境、指定机体碰撞合。
+        # G1关闭了
         return torch.sum(1.*(torch.norm(self.contact_forces[:, self.penalised_contact_indices, :], dim=-1) > 0.1), dim=1)
     
     def _reward_termination(self):
         # Terminal reward / penalty
+        #摔倒 / 骨盆碰地 / 姿态超限 → 可以给 termination 惩罚（若 scale 非 0）
+        #跑满 max_episode_length → time_out_buf=True，不算失败，避免把「正常结束」算作失败。
+        #其它项（tracking、collision、orientation…）先加总，再 裁到 ≥0，减轻「总 reward 长期很负 → 价值函数难学、早死无所谓」的问题。
+        # termination 可突破裁剪，单独在最后一帧扣一大笔（当你把 termination 设成比如 -200 这类时）。
+        # 当前默认 termination = -0.0，这项 实际上不起作用，更多是预留接口。
         return self.reset_buf * ~self.time_out_buf
     
     def _reward_dof_pos_limits(self):
         # Penalize dof positions too close to the limit
+        # 在限位内d ≥ 0
+        # 低于下限d < 0
+        # -d = q_min - q（超出量，为正）
         out_of_limits = -(self.dof_pos - self.dof_pos_limits[:, 0]).clip(max=0.) # lower limit
         out_of_limits += (self.dof_pos - self.dof_pos_limits[:, 1]).clip(min=0.)
         return torch.sum(out_of_limits, dim=1)
@@ -684,14 +707,18 @@ class LeggedRobot(BaseTask):
     def _reward_dof_vel_limits(self):
         # Penalize dof velocities too close to the limit
         # clip to max error = 1 rad/s per joint to avoid huge penalties
+        # 最大速度超限惩罚
         return torch.sum((torch.abs(self.dof_vel) - self.dof_vel_limits*self.cfg.rewards.soft_dof_vel_limit).clip(min=0., max=1.), dim=1)
 
     def _reward_torque_limits(self):
         # penalize torques too close to the limit
+        # 最大扭矩超限惩罚
         return torch.sum((torch.abs(self.torques) - self.torque_limits*self.cfg.rewards.soft_torque_limit).clip(min=0.), dim=1)
 
     def _reward_tracking_lin_vel(self):
         # Tracking of linear velocity commands (xy axes)
+        # 追踪线速度命令（xy 轴）
+        # 实际参数给的并不大，似乎对线速度和角速度跟随要求不高。可能考虑抗干扰能力，此时平衡抗干扰优于线速度跟随。
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
         return torch.exp(-lin_vel_error/self.cfg.rewards.tracking_sigma)
     
@@ -703,6 +730,14 @@ class LeggedRobot(BaseTask):
     def _reward_feet_air_time(self):
         # Reward long steps
         # Need to filter the contacts because the contact reporting of PhysX is unreliable on meshes
+        # 先用 加 dt 之前 的 feet_air_time 算 first_contact；
+        #再 += dt（着地帧会把腾空时间加上本步 dt）；
+        #奖励用 加完 dt 之后 的 feet_air_time。
+        #着地瞬间奖励约为 (T_air + dt - 0.5)（仅 first_contact 为真的脚）。
+
+        #腾空 < ~0.5s：(T - 0.5) < 0 → 配合负 scale 或 only_positive_rewards 裁剪，相当于罚碎步；
+        #腾空 > ~0.5s：为正 → 鼓励更大步。
+        #0.5 是目标 最小腾空时间（秒），不是奖励权重。
         contact = self.contact_forces[:, self.feet_indices, 2] > 1.
         contact_filt = torch.logical_or(contact, self.last_contacts) 
         self.last_contacts = contact
@@ -715,13 +750,16 @@ class LeggedRobot(BaseTask):
     
     def _reward_stumble(self):
         # Penalize feet hitting vertical surfaces
+        # 绊脚惩罚，5 是经验阈值：水平力超过竖直力的 5 倍才算 stumble（可调）。
         return torch.any(torch.norm(self.contact_forces[:, self.feet_indices, :2], dim=2) >\
              5 *torch.abs(self.contact_forces[:, self.feet_indices, 2]), dim=1)
         
     def _reward_stand_still(self):
         # Penalize motion at zero commands
+        # 控制器0速时，停快一点
         return torch.sum(torch.abs(self.dof_pos - self.default_dof_pos), dim=1) * (torch.norm(self.commands[:, :2], dim=1) < 0.1)
 
     def _reward_feet_contact_forces(self):
         # penalize high contact forces
+        # 接触力超限惩罚，
         return torch.sum((torch.norm(self.contact_forces[:, self.feet_indices, :], dim=-1) -  self.cfg.rewards.max_contact_force).clip(min=0.), dim=1)
